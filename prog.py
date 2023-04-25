@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import cv2
+from random import randint
 from keras.layers import Dense, Conv2D, Flatten, MaxPooling2D
 from keras.layers import Dropout, BatchNormalization
 from keras.models import Sequential
@@ -8,46 +8,51 @@ from sklearn.model_selection import train_test_split
 
 def make_model():
     model = Sequential()
+    
     model.add(Conv2D(4, kernel_size=3, activation='relu',
-    input_shape=(img_size, img_size, 3)))
+    	      input_shape=(img_size, img_size, 3), padding = "valid"))
     model.add(Conv2D(4, kernel_size=3, activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2), strides=None, padding='valid',
-    data_format=None))
-    model.add(Conv2D(8, kernel_size=3, activation='relu'))
-    model.add(Conv2D(8, kernel_size=3, activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2), strides=None, padding='valid',
-    data_format=None))
-    model.add(Conv2D(8, kernel_size=3, activation='relu'))
-    model.add(Conv2D(8, kernel_size=3, activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2), strides=None, padding='valid',
-    data_format=None))
-    model.add(Conv2D(4, kernel_size=3, activation='relu'))
-    model.add(Conv2D(4, kernel_size=3, activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2), strides=None, padding='valid',
-    data_format=None))
     model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=None, padding='valid',
+                            data_format=None))
+
+    model.add(Conv2D(8, kernel_size=3, activation='relu'))
+    model.add(Conv2D(8, kernel_size=3, activation='relu'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=None, padding='valid',
+                            data_format=None))
+    
+    model.add(Conv2D(16, kernel_size=3, activation='relu'))
+    model.add(BatchNormalization())
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=None, padding='valid',
+                           data_format=None))
+    model.add(Dropout(rate=0.3))
+
     model.add(Flatten())
-    model.add(Dense(50, activation="relu"))
-    #model.add(Dropout(rate=0.3))
+    model.add(Dense(75, activation="relu"))
     model.add(Dense(3, activation='softmax'))
+    
     model.compile(optimizer='adam', loss='categorical_crossentropy',
-    metrics=['accuracy'])
+        metrics=['accuracy'],)
     return model
 
 
-img_size = 200
-sample_size = 1001
+img_size = 64
+sample_size = 1000
 
 tuples = {}
 tuples["spirals"] = []
 tuples["elliptic"] = []
 tuples["edge"] = []
-for type, data in tuples.items():
-    data = [plt.imread(f"pictures/{type}_{i}.jpg") for i in range(1, sample_size+1)]
+for gtype, data in tuples.items():
+    data = [plt.imread(f"pictures/{gtype}_{i}.jpg") for i in range(sample_size)]
     data = [d/np.max(d) for d in data]
-    tuples[type] = data
+    for i in range(len(data)):
+        for ax in range(3):
+            data.append(np.flip(data[i],axis = ax))
+    tuples[gtype] = data
 
-sample_size = 3*sample_size
+sample_size = 12*sample_size
 data = np.empty((sample_size, img_size, img_size, 3))
 labels = np.empty((sample_size, 3))
 for i in range(0, sample_size, 3):
@@ -59,7 +64,7 @@ for i in range(0, sample_size, 3):
   labels[i+2] = np.array([0, 0, 1])
 
 
-data_train, data_test, labels_train, labels_test =train_test_split(data, labels, test_size=0.20)
+data_train, data_test, labels_train, labels_test =train_test_split(data, labels, test_size=1/3.0)
 data_train = data_train.reshape(-1, img_size, img_size, 3, 1)
 data_test = data_test.reshape(-1, img_size, img_size, 3, 1)
 
@@ -67,4 +72,4 @@ model = make_model()
 print(model.summary())
 model.fit(data_train, labels_train,
 validation_data=(data_test, labels_test),
-epochs=10, batch_size=16)
+epochs=10, batch_size=32)

@@ -1,15 +1,16 @@
-from math import copysign, pow
+from math import copysign, pow, ceil, log
 from urllib.request import urlopen
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
+max_count = int(sys.argv[1])
 def get_galaxies(type : str):
-    max_count = 1000
     result = []
     count = 0
     with open(f"{type}.cgi") as file:
         for line in file.readlines():
-            if(count>max_count):
+            if(count>=max_count):
                 break
             if line.startswith("!"):
                 continue
@@ -22,15 +23,18 @@ def get_galaxies(type : str):
                 log25d = float(params[2])
             except:
                 continue
-            d = 10*pow(10, log25d)
-            scale = min(max(0.015, d/150), 60)
-            url = f"https://skyserver.sdss.org/dr14/SkyServerWS/ImgCutout/getjpeg?TaskName=Skyserver.Explore.Image&ra={RAdeg}&dec={DECdeg}&scale={scale}&width=200&height=200"
+            d = pow(10, log25d)/10
+            if(d*60<15):
+                continue
+            scale = min(max(0.015, 1.05*d*60/64), 60)
+            url = f"https://skyserver.sdss.org/dr14/SkyServerWS/ImgCutout/getjpeg?TaskName=Skyserver.Explore.Image&ra={RAdeg}&dec={DECdeg}&scale={scale}&width=64&height=64"
+            #url = f"https://skyserver.sdss.org/dr14/SkyServerWS/ImgCutout/getjpeg?TaskName=Skyserver.Explore.Image&ra={RAdeg}&dec={DECdeg}&scale=0.015&width={ceil(d*100)}&height={ceil(d*100)}"
             with urlopen(url) as req:
-                result.append(plt.imread(req, format="jpeg"))
+                with open(f"pictures/{type}_{count}.jpg", "wb") as result:
+                    result.write(req.read())
                 count+=1
     return np.array(result)
 
-
-spirals = get_galaxies("spirals")
 edges = get_galaxies("edge")
 elliptic = get_galaxies("elliptic")
+spirals = get_galaxies("spirals")
