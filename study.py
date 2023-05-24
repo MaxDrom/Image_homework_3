@@ -82,3 +82,4 @@ data_train, data_test, labels_train, labels_test =make_data()
 model.fit(data_train, labels_train,
 validation_data=(data_test, labels_test),
 epochs=10, batch_size=32)
+model.save("model")
